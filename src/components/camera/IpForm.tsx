@@ -4,6 +4,8 @@ import { Plug } from "lucide-react";
 import { useState } from "react";
 import { isPrivateIPv4, isValidIPv4, rtspPreview } from "@/lib/ip";
 
+const EXAMPLE_IP = "192.168.0.64";
+
 interface IpFormProps {
   initialIp: string;
   initialPort: number;
@@ -18,12 +20,18 @@ export function IpForm({ initialIp, initialPort, onConnect }: IpFormProps) {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanIp = ip.trim();
+    // Forgive stray spaces and a trailing dot (e.g. "192.168.0.64.").
+    const cleanIp = ip.trim().replace(/\.+$/, "");
     const portNum = Number(port);
-    if (!isValidIPv4(cleanIp)) {
-      setError("Enter an IP address like 192.168.0.64.");
+    if (!cleanIp) {
+      setError("Type the camera's IP address first (the grey text is only an example).");
       return;
     }
+    if (!isValidIPv4(cleanIp)) {
+      setError(`"${cleanIp}" is not a valid IP address. Use four numbers from 0 to 255, like 192.168.0.64.`);
+      return;
+    }
+    setIp(cleanIp);
     if (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535) {
       setError("Port must be a number between 1 and 65535.");
       return;
@@ -32,7 +40,8 @@ export function IpForm({ initialIp, initialPort, onConnect }: IpFormProps) {
     onConnect(cleanIp, portNum);
   };
 
-  const warnPublic = isValidIPv4(ip.trim()) && !isPrivateIPv4(ip.trim());
+  const typed = ip.trim().replace(/\.+$/, "");
+  const warnPublic = isValidIPv4(typed) && !isPrivateIPv4(typed);
 
   return (
     <form onSubmit={submit} noValidate className="rounded-2xl border border-line bg-white p-4 sm:p-5">
@@ -45,7 +54,7 @@ export function IpForm({ initialIp, initialPort, onConnect }: IpFormProps) {
             inputMode="decimal"
             autoComplete="off"
             spellCheck={false}
-            placeholder="192.168.0.64"
+            placeholder="e.g. 192.168.0.64"
             aria-invalid={error ? true : undefined}
             aria-describedby="ip-help"
             className={`w-full rounded-lg border px-3.5 py-2.5 font-mono text-sm text-ink outline-none placeholder:text-muted/60 focus:border-brand focus:ring-3 focus:ring-brand-tint ${error ? "border-danger" : "border-line"}`}
@@ -78,10 +87,22 @@ export function IpForm({ initialIp, initialPort, onConnect }: IpFormProps) {
           </p>
         ) : (
           <p className="text-muted">
-            Stream address: <span className="font-mono text-ink">{rtspPreview(ip.trim(), Number(port) || 554)}</span>
+            Stream address: <span className="font-mono text-ink">{rtspPreview(typed, Number(port) || 554)}</span>
           </p>
         )}
-        <p className="text-muted">Demo build: any valid address connects, and a sample photo stands in for the feed.</p>
+        <p className="text-muted">
+          Demo build: any valid address connects, and a sample photo stands in for the feed.{" "}
+          <button
+            type="button"
+            onClick={() => {
+              setIp(EXAMPLE_IP);
+              setError(null);
+            }}
+            className="font-semibold text-brand hover:underline"
+          >
+            Use {EXAMPLE_IP}
+          </button>
+        </p>
       </div>
     </form>
   );
