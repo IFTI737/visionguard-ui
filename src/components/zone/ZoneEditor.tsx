@@ -6,7 +6,8 @@ import { ArrowLeft, CircleCheck, Radio } from "lucide-react";
 import { useState } from "react";
 import { AreaNameChip } from "@/components/areas/AreaNameChip";
 import { ButtonLink } from "@/components/ui/ButtonLink";
-import { DEFAULT_SCHEDULE, findScene } from "@/data/seed";
+import { useAreaPhotos } from "@/components/camera/useAreaPhotos";
+import { DEFAULT_SCHEDULE } from "@/data/seed";
 import { FULL_FRAME } from "@/lib/geometry";
 import { useHydrated } from "@/lib/useHydrated";
 import { useNow } from "@/lib/useNow";
@@ -32,6 +33,7 @@ export function ZoneEditor() {
   const updateZone = useVisionGuard((s) => s.updateZone);
   const removeZone = useVisionGuard((s) => s.removeZone);
   const now = useNow(true);
+  const photos = useAreaPhotos(area);
 
   const [tool, setTool] = useState<DrawTool>("polygon");
   const [draft, setDraft] = useState<DraftShape | null>(null);
@@ -117,7 +119,7 @@ export function ZoneEditor() {
             onWholeView={() => startDraft({ shape: "full", points: FULL_FRAME })}
           />
           <ZoneCanvas
-            imageSrc={findScene(area.sceneId).empty}
+            imageSrc={photos.loading ? null : photos.empty}
             imageAlt={`${area.name} camera view (demo photo)`}
             zones={area.zones}
             selectedId={selectedId}

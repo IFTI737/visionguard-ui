@@ -38,7 +38,7 @@ export function parseBackup(text: string): BackupData {
   }
   return {
     userName: r.userName,
-    // Older exports had no demo scene; fall back to the default one.
+    // Older exports had no photo setting; use automatic matching by area name.
     areas: r.areas.map((a) => ({ ...a, sceneId: a.sceneId ?? DEFAULT_SCENE_ID })),
     alerts: Array.isArray(r.alerts) ? r.alerts.filter((a) => typeof a?.level === "string") : [],
     settings: r.settings,

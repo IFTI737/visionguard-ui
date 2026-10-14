@@ -2,7 +2,9 @@
 
 import { useRef, useState } from "react";
 import type { LiveFeedView } from "@/components/camera/CameraFrame";
-import { COVERED_FALLBACK, BLOCKED_CAMERA, findScene } from "@/data/seed";
+import { useAreaPhotos } from "@/components/camera/useAreaPhotos";
+import { COVERED_FALLBACK, BLOCKED_CAMERA } from "@/data/seed";
+import { PLACEHOLDER_IMAGE } from "@/components/camera/FeedFrame";
 import { checkCameraView, type CameraHealth } from "@/lib/cameraHealth";
 import { detectPeople, loadDetector } from "@/lib/detector";
 import { checkPeople, decide, type PersonCheck, type RiskDecision } from "@/lib/risk";
@@ -41,9 +43,10 @@ export function useDemoEvents(area: Area | undefined) {
   // Each run gets a number; results from an older run are ignored.
   const runId = useRef(0);
 
-  const scene = findScene(area?.sceneId);
-  const coveredSrc = scene.covered ?? COVERED_FALLBACK;
-  const src = mode === "person" ? (scene.person ?? scene.empty) : mode === "covered" ? coveredSrc : scene.empty;
+  const photos = useAreaPhotos(area);
+  const emptySrc = photos.empty ?? PLACEHOLDER_IMAGE;
+  const coveredSrc = photos.covered ?? COVERED_FALLBACK;
+  const src = mode === "person" ? (photos.person ?? emptySrc) : mode === "covered" ? coveredSrc : emptySrc;
 
   const feed: LiveFeedView = {
     src,
@@ -99,12 +102,15 @@ export function useDemoEvents(area: Area | undefined) {
   };
 
   const personWalksIn = () => {
-    if (!scene.person) {
-      setAnalysis({ kind: "error", message: `The “${scene.label}” scene has no person photo yet.` });
+    if (!photos.person) {
+      setAnalysis({
+        kind: "error",
+        message: `No person photo for this area yet. Add public/demo/${photos.expected.person} (same view, with someone in it).`,
+      });
       return;
     }
     setMode("person");
-    void scan(scene.person);
+    void scan(photos.person);
   };
 
   const scanView = () => {
@@ -168,7 +174,7 @@ export function useDemoEvents(area: Area | undefined) {
     setBusy(null);
   };
 
-  return { scene, mode, feed, analysis, busy, toast, dismissToast, personWalksIn, scanView, coverCamera, reset };
+  return { photos, mode, feed, analysis, busy, toast, dismissToast, personWalksIn, scanView, coverCamera, reset };
 }
 
 export type DemoEvents = ReturnType<typeof useDemoEvents>;

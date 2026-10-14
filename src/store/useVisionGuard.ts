@@ -65,7 +65,7 @@ export const useVisionGuard = create<VisionGuardState>()(
           features: preset ? [...preset.features] : [...CUSTOM_AREA_FEATURES],
           zones: [],
           hazard: opts.hazard ?? preset?.hazard ?? false,
-          sceneId: preset?.sceneId ?? DEFAULT_SCENE_ID,
+          sceneId: DEFAULT_SCENE_ID,
           createdAt: Date.now(),
         };
         set((s) => ({ areas: [...s.areas, area] }));
@@ -135,21 +135,12 @@ export const useVisionGuard = create<VisionGuardState>()(
     }),
     {
       name: "visionguard-demo",
-      version: 2,
-      // v1 → v2: areas got a demo scene instead of a single photo; alerts changed shape.
+      version: 3,
+      // v1 → v2: alerts changed shape. v2 → v3: demo photos are found from the area name ("auto").
       migrate: (persisted, version) => {
         const state = (persisted ?? {}) as Partial<BackupData>;
-        if (version < 2) {
-          return {
-            ...state,
-            areas: (state.areas ?? []).map((a) => ({
-              ...a,
-              sceneId: a.sceneId ?? findPreset(a.kind)?.sceneId ?? DEFAULT_SCENE_ID,
-            })),
-            alerts: [],
-          } as BackupData;
-        }
-        return state as BackupData;
+        const areas = (state.areas ?? []).map((a) => ({ ...a, sceneId: DEFAULT_SCENE_ID }));
+        return { ...state, areas, alerts: version < 2 ? [] : (state.alerts ?? []) } as BackupData;
       },
       storage: createJSONStorage(() => localStorage),
       partialize: (s): BackupData => ({

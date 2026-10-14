@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { EyeOff, Info, LoaderCircle, RotateCcw, ScanSearch, UserRound } from "lucide-react";
-import { DEMO_SCENES } from "@/data/seed";
+import { AUTO_SCENE_ID, DEMO_SCENES } from "@/data/seed";
 import { useVisionGuard } from "@/store/useVisionGuard";
 import type { Area } from "@/types";
 import { AnalysisPanel } from "./AnalysisPanel";
@@ -37,7 +37,7 @@ export function DemoControls({ area, demo }: { area: Area; demo: DemoEvents }) {
           </p>
         </div>
         <label className="flex items-center gap-2 text-xs font-semibold text-muted">
-          Demo scene
+          Demo photos
           <select
             value={area.sceneId}
             disabled={disabled}
@@ -47,6 +47,7 @@ export function DemoControls({ area, demo }: { area: Area; demo: DemoEvents }) {
             }}
             className="rounded-lg border border-line bg-white px-2.5 py-1.5 text-sm font-medium text-ink"
           >
+            <option value={AUTO_SCENE_ID}>Auto (match area name)</option>
             {DEMO_SCENES.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.label}
@@ -55,6 +56,8 @@ export function DemoControls({ area, demo }: { area: Area; demo: DemoEvents }) {
           </select>
         </label>
       </div>
+
+      <PhotoStatus demo={demo} />
 
       {area.zones.length === 0 && (
         <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">
@@ -108,5 +111,43 @@ export function DemoControls({ area, demo }: { area: Area; demo: DemoEvents }) {
         </div>
       )}
     </section>
+  );
+}
+
+/** Which photo files are in use, or which names to add to /public/demo. */
+function PhotoStatus({ demo }: { demo: DemoEvents }) {
+  const { photos } = demo;
+  if (photos.loading) return <p className="mt-3 text-xs text-muted">Looking for this area&apos;s photos…</p>;
+
+  const file = (url: string | null) => (url ? url.split("/").pop() : null);
+  if (!photos.empty) {
+    return (
+      <p className="mt-3 rounded-xl bg-pale px-3 py-2 text-xs text-muted">
+        No photos found for this area, so a sample view is shown. Add{" "}
+        <code className="font-mono text-ink">public/demo/{photos.expected.empty}</code> and{" "}
+        <code className="font-mono text-ink">{photos.expected.person}</code>, then refresh.
+      </p>
+    );
+  }
+  return (
+    <p className="mt-3 flex flex-wrap gap-x-3 gap-y-1 rounded-xl bg-pale px-3 py-2 text-xs text-muted">
+      <span>
+        View: <code className="font-mono text-ink">{file(photos.empty)}</code>
+      </span>
+      <span>
+        Person:{" "}
+        {photos.person ? (
+          <code className="font-mono text-ink">{file(photos.person)}</code>
+        ) : (
+          <span>
+            missing (add <code className="font-mono text-ink">{photos.expected.person}</code>)
+          </span>
+        )}
+      </span>
+      <span>
+        Covered:{" "}
+        {photos.covered ? <code className="font-mono text-ink">{file(photos.covered)}</code> : "dark frame (optional photo)"}
+      </span>
+    </p>
   );
 }

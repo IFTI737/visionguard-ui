@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Menu, ShieldCheck } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useVisionGuard } from "@/store/useVisionGuard";
+import { LogoMark } from "./Logo";
 import { UserBadge } from "./UserBadge";
 
 export function TopBar() {
@@ -23,9 +24,7 @@ export function TopBar() {
       </button>
 
       <Link href="/" className="flex items-center gap-2 rounded-lg pr-2">
-        <span className="grid size-8 place-items-center rounded-lg bg-brand text-white">
-          <ShieldCheck size={18} strokeWidth={2.25} />
-        </span>
+        <LogoMark size={32} />
         <span className="text-[17px] font-semibold tracking-tight text-ink">VisionGuard</span>
       </Link>
 
