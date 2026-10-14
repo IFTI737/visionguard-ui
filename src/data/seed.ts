@@ -12,8 +12,8 @@ export interface AreaPreset {
   /** Hazard areas get an "always on" zone option by default. */
   hazard: boolean;
   features: CameraFeature[];
-  /** Photo in /public/demo that stands in for this camera's feed. */
-  demoImage: string | null;
+  /** Demo scene (sample photos) used for this camera's feed. See DEMO_SCENES. */
+  sceneId: string;
 }
 
 export const DEFAULT_USER_NAME = "Demo owner";
@@ -25,7 +25,7 @@ export const AREA_PRESETS: AreaPreset[] = [
     description: "Roof and its edges; a fall hazard as well as an entry point.",
     hazard: true,
     features: ["person_detection", "intrusion", "camera_health"],
-    demoImage: "/demo/rooftop.jpg",
+    sceneId: "rooftop",
   },
   {
     kind: "void",
@@ -33,7 +33,7 @@ export const AREA_PRESETS: AreaPreset[] = [
     description: "Open gap or shaft inside or beside the building.",
     hazard: true,
     features: ["person_detection", "intrusion", "camera_health"],
-    demoImage: "/demo/void.jpg",
+    sceneId: "void",
   },
   {
     kind: "garage",
@@ -41,7 +41,7 @@ export const AREA_PRESETS: AreaPreset[] = [
     description: "Parking area and garage entrance.",
     hazard: false,
     features: ["person_detection", "intrusion", "camera_health"],
-    demoImage: null,
+    sceneId: "walkway",
   },
   {
     kind: "front-gate",
@@ -49,7 +49,7 @@ export const AREA_PRESETS: AreaPreset[] = [
     description: "Main gate and the street side of the entrance.",
     hazard: false,
     features: ["person_detection", "intrusion", "camera_health"],
-    demoImage: null,
+    sceneId: "walkway",
   },
   {
     kind: "entrance-face",
@@ -57,7 +57,7 @@ export const AREA_PRESETS: AreaPreset[] = [
     description: "Camera facing the entrance for resident face checks (daylight only).",
     hazard: false,
     features: ["person_detection", "face_verification", "camera_health"],
-    demoImage: null,
+    sceneId: "walkway",
   },
   {
     kind: "back-side",
@@ -65,7 +65,7 @@ export const AREA_PRESETS: AreaPreset[] = [
     description: "Rear wall and back passage of the building.",
     hazard: false,
     features: ["person_detection", "intrusion", "camera_health"],
-    demoImage: null,
+    sceneId: "walkway",
   },
   {
     kind: "left-side",
@@ -73,7 +73,7 @@ export const AREA_PRESETS: AreaPreset[] = [
     description: "Left side wall and passage.",
     hazard: false,
     features: ["person_detection", "intrusion", "camera_health"],
-    demoImage: null,
+    sceneId: "walkway",
   },
   {
     kind: "right-side",
@@ -81,7 +81,7 @@ export const AREA_PRESETS: AreaPreset[] = [
     description: "Right side wall and passage.",
     hazard: false,
     features: ["person_detection", "intrusion", "camera_health"],
-    demoImage: null,
+    sceneId: "walkway",
   },
 ];
 
@@ -101,6 +101,88 @@ export const DEFAULT_CHANNELS: Record<AlertChannel, boolean> = {
 export const DEFAULT_SCHEDULE = { from: "18:00", to: "06:00" };
 
 export const DEFAULT_CAMERA_PORT = 554;
+
+/* ------------------------------------------------------------------ */
+/* Demo scenes: still photos that stand in for camera feeds.           */
+/* Put the files in /public/demo with exactly these names.            */
+/* ------------------------------------------------------------------ */
+
+export interface DemoScene {
+  id: string;
+  label: string;
+  /** The normal view (nobody in the restricted area). */
+  empty: string;
+  /** Same view, same position, with a person in it. Used by "Person walks in". */
+  person: string | null;
+  /** Same camera with the lens covered. Optional; a dark frame is used if missing. */
+  covered: string | null;
+}
+
+export const DEMO_SCENES: DemoScene[] = [
+  {
+    id: "walkway",
+    label: "Walkway",
+    empty: "/demo/walkway-empty.jpg",
+    person: "/demo/walkway-person.jpg",
+    covered: "/demo/walkway-covered.jpg",
+  },
+  {
+    id: "rooftop",
+    label: "Rooftop",
+    empty: "/demo/rooftop-empty.jpg",
+    person: "/demo/rooftop-person.jpg",
+    covered: null,
+  },
+  {
+    id: "void",
+    label: "Void area",
+    empty: "/demo/void-empty.jpg",
+    person: "/demo/void-person.jpg",
+    covered: null,
+  },
+];
+
+export const DEFAULT_SCENE_ID = "walkway";
+
+/** Shown when the camera is "covered" and the scene has no covered photo. */
+export const COVERED_FALLBACK = "/demo/covered.svg";
+
+export function findScene(id: string | undefined): DemoScene {
+  return DEMO_SCENES.find((s) => s.id === id) ?? DEMO_SCENES.find((s) => s.id === DEFAULT_SCENE_ID)!;
+}
+
+/* ------------------------------------------------------------------ */
+/* Person detector (runs in the browser with onnxruntime-web)          */
+/* ------------------------------------------------------------------ */
+
+export const DETECTOR = {
+  /** YOLOv8n trained on COCO, exported to ONNX. Swap for your own export of best.pt if you like. */
+  modelUrl: "/models/yolov8n.onnx",
+  inputSize: 640,
+  /** Class index of "person" in the model (0 for COCO models). */
+  personClass: 0,
+  /** Ignore detections below this confidence. */
+  minScore: 0.35,
+  /** Overlap above which two boxes count as the same person. */
+  iouThreshold: 0.45,
+};
+
+/* ------------------------------------------------------------------ */
+/* Risk score: the starting weights from the pitch deck (slide 7).     */
+/* ------------------------------------------------------------------ */
+
+export const RISK = {
+  restrictedZone: 40,
+  restrictedHours: 30,
+  night: 15,
+  /** Night mode hours (Asia/Dhaka). */
+  nightWindow: { from: "22:00", to: "05:00" },
+  /** Score at or above which each level applies; below `log` is ignored. */
+  bands: { log: 20, notify: 50, urgent: 80 },
+};
+
+/** Camera-blocked check: the view is treated as covered if it is this dark or this flat. */
+export const BLOCKED_CAMERA = { maxBrightness: 45, maxContrast: 18 };
 
 export function findPreset(kind: AreaKind): AreaPreset | undefined {
   return AREA_PRESETS.find((p) => p.kind === kind);

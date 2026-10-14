@@ -1,3 +1,4 @@
+import { DEFAULT_SCENE_ID } from "@/data/seed";
 import type { AlertEvent, Area, Settings } from "@/types";
 
 /** The part of the store that is saved, exported and imported. */
@@ -37,8 +38,9 @@ export function parseBackup(text: string): BackupData {
   }
   return {
     userName: r.userName,
-    areas: r.areas,
-    alerts: Array.isArray(r.alerts) ? r.alerts : [],
+    // Older exports had no demo scene; fall back to the default one.
+    areas: r.areas.map((a) => ({ ...a, sceneId: a.sceneId ?? DEFAULT_SCENE_ID })),
+    alerts: Array.isArray(r.alerts) ? r.alerts.filter((a) => typeof a?.level === "string") : [],
     settings: r.settings,
   };
 }

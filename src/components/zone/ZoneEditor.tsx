@@ -6,7 +6,7 @@ import { ArrowLeft, CircleCheck, Radio } from "lucide-react";
 import { useState } from "react";
 import { AreaNameChip } from "@/components/areas/AreaNameChip";
 import { ButtonLink } from "@/components/ui/ButtonLink";
-import { DEFAULT_SCHEDULE } from "@/data/seed";
+import { DEFAULT_SCHEDULE, findScene } from "@/data/seed";
 import { FULL_FRAME } from "@/lib/geometry";
 import { useHydrated } from "@/lib/useHydrated";
 import { useNow } from "@/lib/useNow";
@@ -117,7 +117,7 @@ export function ZoneEditor() {
             onWholeView={() => startDraft({ shape: "full", points: FULL_FRAME })}
           />
           <ZoneCanvas
-            imageSrc={area.demoImage}
+            imageSrc={findScene(area.sceneId).empty}
             imageAlt={`${area.name} camera view (demo photo)`}
             zones={area.zones}
             selectedId={selectedId}

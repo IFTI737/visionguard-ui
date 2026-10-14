@@ -3,19 +3,33 @@
 import { Cctv, LoaderCircle, Play, Wifi } from "lucide-react";
 import { ZoneOverlay } from "@/components/zone/ZoneOverlay";
 import { formatDhakaDate, formatDhakaTime, useNow } from "@/lib/useNow";
+import type { PersonCheck } from "@/lib/risk";
 import type { Area } from "@/types";
-import { FeedImage } from "./FeedImage";
+import { DetectionOverlay } from "./DetectionOverlay";
+import { FeedFrame } from "./FeedFrame";
+
+export interface LiveFeedView {
+  /** Photo currently shown as the feed. */
+  src: string;
+  /** Shown if the photo is missing. */
+  fallback?: string;
+  /** People found in this photo, if a scan has run on it. */
+  checks: PersonCheck[];
+  /** True while the camera is "covered" in the demo. */
+  covered?: boolean;
+}
 
 interface CameraFrameProps {
   area: Area;
+  feed: LiveFeedView;
   onStartStreaming: () => void;
 }
 
 /**
- * The wide 16:9 camera view. It shows one of four states:
+ * The camera view. It shows one of four states:
  * empty dashed box, connecting spinner, connected (press Start streaming), or the live demo feed.
  */
-export function CameraFrame({ area, onStartStreaming }: CameraFrameProps) {
+export function CameraFrame({ area, feed, onStartStreaming }: CameraFrameProps) {
   const { status, ip } = area.camera;
 
   if (status === "disconnected") {
@@ -71,19 +85,24 @@ export function CameraFrame({ area, onStartStreaming }: CameraFrameProps) {
     );
   }
 
-  return <LiveFeed area={area} />;
+  return <LiveFeed area={area} feed={feed} />;
 }
 
-function LiveFeed({ area }: { area: Area }) {
+function LiveFeed({ area, feed }: { area: Area; feed: LiveFeedView }) {
   const now = useNow(true);
 
   return (
-    <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-ink shadow-lg shadow-ink/10">
-      {/* A sample photo stands in for the live feed in this demo build. */}
-      <FeedImage src={area.demoImage} alt={`${area.name} camera view (demo photo)`} />
-      <ZoneOverlay zones={area.zones} now={now} />
-      <div aria-hidden className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/55 to-transparent" />
-      <div aria-hidden className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/50 to-transparent" />
+    <FeedFrame
+      src={feed.src}
+      fallback={feed.fallback}
+      alt={`${area.name} camera view (demo photo)`}
+      className="rounded-2xl shadow-lg shadow-ink/10"
+    >
+      {!feed.covered && <ZoneOverlay zones={area.zones} now={now} />}
+      <DetectionOverlay checks={feed.checks} />
+
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/55 to-transparent" />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/50 to-transparent" />
 
       <div className="absolute left-3 top-3 flex items-center gap-2 sm:left-4 sm:top-4">
         <span className="inline-flex items-center gap-1.5 rounded-md bg-danger px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-white">
@@ -109,6 +128,6 @@ function LiveFeed({ area }: { area: Area }) {
       <p className="absolute bottom-3 right-3 font-mono text-[11px] text-white/85 sm:bottom-4 sm:right-4">
         {area.camera.ip}:{area.camera.port}
       </p>
-    </div>
+    </FeedFrame>
   );
 }

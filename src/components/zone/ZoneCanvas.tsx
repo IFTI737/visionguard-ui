@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Check, Undo2, X } from "lucide-react";
-import { FeedImage } from "@/components/camera/FeedImage";
+import { FeedFrame } from "@/components/camera/FeedFrame";
 import {
   centroid,
   isBigEnough,
@@ -148,8 +148,7 @@ export function ZoneCanvas({
 
   return (
     <div>
-      <div className="relative aspect-video w-full select-none overflow-hidden rounded-2xl bg-ink shadow-lg shadow-ink/10">
-        <FeedImage src={imageSrc} alt={imageAlt} />
+      <FeedFrame src={imageSrc} alt={imageAlt} className="select-none rounded-2xl shadow-lg shadow-ink/10">
 
         <div
           ref={overlayRef}
@@ -280,7 +279,7 @@ export function ZoneCanvas({
           Still frame
         </span>
 
-      </div>
+      </FeedFrame>
 
       {/* Hints and polygon controls sit below the frame so they never cover the area being drawn */}
       {canDraw && polyPoints.length === 0 && !drag && (

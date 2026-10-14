@@ -56,21 +56,44 @@ export interface Area {
   zones: Zone[];
   /** Hazard areas (roof edge, open shaft) can have zones that alert at any hour. */
   hazard: boolean;
-  /** Photo that stands in for the live feed in the demo. */
-  demoImage: string | null;
+  /** Which demo scene (sample photos in /public/demo) stands in for this camera's feed. See DEMO_SCENES. */
+  sceneId: string;
   createdAt: number;
+}
+
+/** A detected person, in fractions of the image size (0–1). */
+export interface PersonBox {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+  /** Model confidence, 0–1. */
+  score: number;
 }
 
 export type AlertKind = "intrusion" | "camera_blocked";
 export type AlertStatus = "new" | "confirmed" | "false_alarm";
+/** Risk bands from the pitch: log (20–49), notify (50–79), urgent (80+). */
+export type AlertLevel = "log" | "notify" | "urgent";
+
+export interface AlertSnapshot {
+  /** Photo the event was found on. */
+  image: string;
+  boxes: PersonBox[];
+}
 
 export interface AlertEvent {
   id: string;
   areaId: string;
+  /** Kept so the alert still reads well if the area is renamed or removed. */
+  areaName: string;
   kind: AlertKind;
+  level: AlertLevel;
   title: string;
   reasons: string[];
-  snapshot: string | null;
+  /** Risk score for intrusions; null for camera-health alerts. */
+  score: number | null;
+  snapshot: AlertSnapshot | null;
   status: AlertStatus;
   createdAt: number;
 }

@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import {
   CUSTOM_AREA_FEATURES,
+  DEFAULT_SCENE_ID,
   DEFAULT_CAMERA_PORT,
   DEFAULT_CHANNELS,
   DEFAULT_USER_NAME,
@@ -11,7 +12,7 @@ import {
 } from "@/data/seed";
 import type { BackupData } from "@/lib/backup";
 import { makeId } from "@/lib/id";
-import type { AlertChannel, Area, AreaKind, CameraStatus, Zone } from "@/types";
+import type { AlertChannel, AlertEvent, AlertStatus, Area, AreaKind, CameraStatus, Zone } from "@/types";
 
 interface VisionGuardState extends BackupData {
   /** UI only; not saved. */
@@ -27,6 +28,10 @@ interface VisionGuardState extends BackupData {
   updateZone: (areaId: string, zoneId: string, patch: Partial<Omit<Zone, "id">>) => void;
   removeZone: (areaId: string, zoneId: string) => void;
   setChannel: (channel: AlertChannel, on: boolean) => void;
+
+  addAlert: (alert: Omit<AlertEvent, "id" | "createdAt" | "status">) => AlertEvent;
+  setAlertStatus: (id: string, status: AlertStatus) => void;
+  clearAlerts: () => void;
 
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
@@ -60,7 +65,7 @@ export const useVisionGuard = create<VisionGuardState>()(
           features: preset ? [...preset.features] : [...CUSTOM_AREA_FEATURES],
           zones: [],
           hazard: opts.hazard ?? preset?.hazard ?? false,
-          demoImage: preset?.demoImage ?? null,
+          sceneId: preset?.sceneId ?? DEFAULT_SCENE_ID,
           createdAt: Date.now(),
         };
         set((s) => ({ areas: [...s.areas, area] }));
@@ -113,6 +118,15 @@ export const useVisionGuard = create<VisionGuardState>()(
       setChannel: (channel, on) =>
         set((s) => ({ settings: { ...s.settings, channels: { ...s.settings.channels, [channel]: on } } })),
 
+      addAlert: (alert) => {
+        const full: AlertEvent = { ...alert, id: makeId("alert"), createdAt: Date.now(), status: "new" };
+        set((s) => ({ alerts: [full, ...s.alerts].slice(0, 100) }));
+        return full;
+      },
+      setAlertStatus: (id, status) =>
+        set((s) => ({ alerts: s.alerts.map((a) => (a.id === id ? { ...a, status } : a)) })),
+      clearAlerts: () => set({ alerts: [] }),
+
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
 
@@ -121,7 +135,22 @@ export const useVisionGuard = create<VisionGuardState>()(
     }),
     {
       name: "visionguard-demo",
-      version: 1,
+      version: 2,
+      // v1 → v2: areas got a demo scene instead of a single photo; alerts changed shape.
+      migrate: (persisted, version) => {
+        const state = (persisted ?? {}) as Partial<BackupData>;
+        if (version < 2) {
+          return {
+            ...state,
+            areas: (state.areas ?? []).map((a) => ({
+              ...a,
+              sceneId: a.sceneId ?? findPreset(a.kind)?.sceneId ?? DEFAULT_SCENE_ID,
+            })),
+            alerts: [],
+          } as BackupData;
+        }
+        return state as BackupData;
+      },
       storage: createJSONStorage(() => localStorage),
       partialize: (s): BackupData => ({
         userName: s.userName,

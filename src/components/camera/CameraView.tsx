@@ -5,6 +5,9 @@ import { useParams } from "next/navigation";
 import { ArrowLeft, Shapes, Unplug } from "lucide-react";
 import { useRef } from "react";
 import { AreaNameChip } from "@/components/areas/AreaNameChip";
+import { AlertToast } from "@/components/demo/AlertToast";
+import { DemoControls } from "@/components/demo/DemoControls";
+import { useDemoEvents } from "@/components/demo/useDemoEvents";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { useHydrated } from "@/lib/useHydrated";
 import { useVisionGuard } from "@/store/useVisionGuard";
@@ -20,6 +23,7 @@ export function CameraView() {
   const area = useVisionGuard((s) => s.areas.find((a) => a.id === areaId));
   const setCamera = useVisionGuard((s) => s.setCamera);
   const timer = useRef<number | null>(null);
+  const demo = useDemoEvents(area);
 
   if (!hydrated) return <CameraViewSkeleton />;
 
@@ -45,6 +49,7 @@ export function CameraView() {
 
   const disconnect = () => {
     if (timer.current) window.clearTimeout(timer.current);
+    demo.reset();
     setCamera(area.id, { status: "disconnected" });
   };
 
@@ -69,7 +74,7 @@ export function CameraView() {
         <AreaNameChip area={area} />
       </div>
 
-      <CameraFrame area={area} onStartStreaming={() => setCamera(area.id, { status: "live" })} />
+      <CameraFrame area={area} feed={demo.feed} onStartStreaming={() => setCamera(area.id, { status: "live" })} />
 
       <div className="mt-4">
         {status === "disconnected" ? (
@@ -109,6 +114,9 @@ export function CameraView() {
           </div>
         )}
       </div>
+
+      {status === "live" && <DemoControls area={area} demo={demo} />}
+      <AlertToast alert={demo.toast} onClose={demo.dismissToast} />
     </div>
   );
 }
