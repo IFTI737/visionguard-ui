@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Shapes, TriangleAlert, Unplug } from "lucide-react";
+import { ArrowLeft, Shapes, Unplug } from "lucide-react";
 import { useRef } from "react";
-import { AreaIcon } from "@/components/areas/AreaIcon";
+import { AreaNameChip } from "@/components/areas/AreaNameChip";
 import { ButtonLink } from "@/components/ui/ButtonLink";
-import { InlineEdit } from "@/components/ui/InlineEdit";
 import { useHydrated } from "@/lib/useHydrated";
 import { useVisionGuard } from "@/store/useVisionGuard";
 import { CameraFrame } from "./CameraFrame";
@@ -19,7 +18,6 @@ export function CameraView() {
   const { areaId } = useParams<{ areaId: string }>();
   const hydrated = useHydrated();
   const area = useVisionGuard((s) => s.areas.find((a) => a.id === areaId));
-  const renameArea = useVisionGuard((s) => s.renameArea);
   const setCamera = useVisionGuard((s) => s.setCamera);
   const timer = useRef<number | null>(null);
 
@@ -68,28 +66,7 @@ export function CameraView() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 rounded-xl border border-line bg-white py-2 pl-2 pr-3">
-          <span className="grid size-9 place-items-center rounded-lg bg-brand-tint text-brand">
-            <AreaIcon kind={area.kind} size={18} />
-          </span>
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Area name</p>
-            <InlineEdit
-              value={area.name}
-              onSave={(name) => renameArea(area.id, name)}
-              ariaLabel="Rename this area"
-              className="-ml-1.5 max-w-[14rem] text-sm font-semibold text-ink"
-            />
-          </div>
-          {area.hazard && (
-            <span
-              title="Hazard area"
-              className="ml-1 inline-flex items-center gap-1 rounded-full bg-danger-tint px-2 py-0.5 text-[11px] font-semibold text-danger"
-            >
-              <TriangleAlert size={11} /> Hazard
-            </span>
-          )}
-        </div>
+        <AreaNameChip area={area} />
       </div>
 
       <CameraFrame area={area} onStartStreaming={() => setCamera(area.id, { status: "live" })} />
@@ -113,15 +90,21 @@ export function CameraView() {
               >
                 <Unplug size={16} /> Disconnect
               </button>
-              <button
-                type="button"
-                disabled
-                title="Built in the next step"
-                className="inline-flex cursor-not-allowed items-center gap-2 rounded-lg bg-line px-4 py-2.5 text-sm font-semibold text-muted"
-              >
-                <Shapes size={16} /> Define restricted zone
-                <span className="rounded bg-white/70 px-1.5 py-0.5 text-[10px] uppercase tracking-wide">Next step</span>
-              </button>
+              {status === "live" ? (
+                <ButtonLink href={`/areas/${area.id}/zone`}>
+                  <Shapes size={16} />
+                  {area.zones.length === 0 ? "Define restricted zone" : `Edit zones (${area.zones.length})`}
+                </ButtonLink>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  title="Start streaming first"
+                  className="inline-flex cursor-not-allowed items-center gap-2 rounded-lg bg-line px-4 py-2.5 text-sm font-semibold text-muted"
+                >
+                  <Shapes size={16} /> Define restricted zone
+                </button>
+              )}
             </div>
           </div>
         )}

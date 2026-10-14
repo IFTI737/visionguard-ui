@@ -11,7 +11,7 @@ import {
 } from "@/data/seed";
 import type { BackupData } from "@/lib/backup";
 import { makeId } from "@/lib/id";
-import type { AlertChannel, Area, AreaKind, CameraStatus } from "@/types";
+import type { AlertChannel, Area, AreaKind, CameraStatus, Zone } from "@/types";
 
 interface VisionGuardState extends BackupData {
   /** UI only; not saved. */
@@ -23,6 +23,9 @@ interface VisionGuardState extends BackupData {
   renameArea: (id: string, name: string) => void;
   updateArea: (id: string, patch: Partial<Omit<Area, "id">>) => void;
   removeArea: (id: string) => void;
+  addZone: (areaId: string, zone: Omit<Zone, "id">) => string;
+  updateZone: (areaId: string, zoneId: string, patch: Partial<Omit<Zone, "id">>) => void;
+  removeZone: (areaId: string, zoneId: string) => void;
   setChannel: (channel: AlertChannel, on: boolean) => void;
 
   toggleSidebar: () => void;
@@ -81,6 +84,30 @@ export const useVisionGuard = create<VisionGuardState>()(
         set((s) => ({
           areas: s.areas.filter((a) => a.id !== id),
           alerts: s.alerts.filter((e) => e.areaId !== id),
+        })),
+
+      addZone: (areaId, zone) => {
+        const id = makeId("zone");
+        set((s) => ({
+          areas: s.areas.map((a) => (a.id === areaId ? { ...a, zones: [...a.zones, { ...zone, id }] } : a)),
+        }));
+        return id;
+      },
+
+      updateZone: (areaId, zoneId, patch) =>
+        set((s) => ({
+          areas: s.areas.map((a) =>
+            a.id === areaId
+              ? { ...a, zones: a.zones.map((z) => (z.id === zoneId ? { ...z, ...patch } : z)) }
+              : a,
+          ),
+        })),
+
+      removeZone: (areaId, zoneId) =>
+        set((s) => ({
+          areas: s.areas.map((a) =>
+            a.id === areaId ? { ...a, zones: a.zones.filter((z) => z.id !== zoneId) } : a,
+          ),
         })),
 
       setChannel: (channel, on) =>

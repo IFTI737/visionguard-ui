@@ -1,11 +1,10 @@
 "use client";
 
 import { Cctv, LoaderCircle, Play, Wifi } from "lucide-react";
-import { useState } from "react";
+import { ZoneOverlay } from "@/components/zone/ZoneOverlay";
 import { formatDhakaDate, formatDhakaTime, useNow } from "@/lib/useNow";
 import type { Area } from "@/types";
-
-const PLACEHOLDER = "/demo/placeholder.svg";
+import { FeedImage } from "./FeedImage";
 
 interface CameraFrameProps {
   area: Area;
@@ -77,19 +76,12 @@ export function CameraFrame({ area, onStartStreaming }: CameraFrameProps) {
 
 function LiveFeed({ area }: { area: Area }) {
   const now = useNow(true);
-  const [src, setSrc] = useState(area.demoImage ?? PLACEHOLDER);
 
   return (
     <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-ink shadow-lg shadow-ink/10">
       {/* A sample photo stands in for the live feed in this demo build. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt={`${area.name} camera view (demo photo)`}
-        onError={() => setSrc(PLACEHOLDER)}
-        className="absolute inset-0 size-full object-cover"
-        draggable={false}
-      />
+      <FeedImage src={area.demoImage} alt={`${area.name} camera view (demo photo)`} />
+      <ZoneOverlay zones={area.zones} now={now} />
       <div aria-hidden className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/55 to-transparent" />
       <div aria-hidden className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/50 to-transparent" />
 
