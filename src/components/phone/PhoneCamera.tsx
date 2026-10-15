@@ -226,21 +226,56 @@ export function PhoneCamera() {
 
   async function switchCamera() {
     const next: Facing = facing === "environment" ? "user" : "environment";
+    const previous = streamRef.current;
     setSwitching(true);
+    setError(null);
+
+    // Many phones can only open one camera at a time, so release the current one first.
+    previous?.getTracks().forEach((t) => t.stop());
+
+    const open = (f: Facing, exact: boolean) =>
+      navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          facingMode: exact ? { exact: f } : { ideal: f },
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          frameRate: { ideal: 15, max: 20 },
+        },
+      });
+
+    let media: MediaStream | null = null;
+    let target: Facing = next;
     try {
-      const media = await navigator.mediaDevices.getUserMedia(cameraConstraints(next));
+      try {
+        media = await open(next, true);
+      } catch {
+        media = await open(next, false);
+      }
+    } catch (err) {
+      // Could not open the other camera: go back to the one that was working.
+      setError(`Could not switch cameras (${cameraError(err)}) Going back to the ${facing === "environment" ? "back" : "front"} camera.`);
+      try {
+        media = await open(facing, false);
+        target = facing;
+      } catch (err2) {
+        setError(cameraError(err2));
+      }
+    }
+
+    if (media) {
       const track = media.getVideoTracks()[0];
       const sender = callRef.current?.peerConnection?.getSenders().find((s) => s.track?.kind === "video");
-      await sender?.replaceTrack(track);
-      streamRef.current?.getTracks().forEach((t) => t.stop());
+      try {
+        await sender?.replaceTrack(track);
+      } catch {
+        /* the next reconnect will send the new stream */
+      }
       streamRef.current = media;
       setStream(media);
-      setFacing(next);
-    } catch (err) {
-      setError(cameraError(err));
-    } finally {
-      setSwitching(false);
+      setFacing(target);
     }
+    setSwitching(false);
   }
 
   function teardown() {
