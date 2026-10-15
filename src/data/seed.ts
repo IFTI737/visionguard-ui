@@ -142,6 +142,8 @@ export const DETECTOR = {
 
 export const RISK = {
   restrictedZone: 40,
+  /** A person counts as inside a zone when their feet are in it or at least this share of their box overlaps it. */
+  minOverlap: 0.35,
   restrictedHours: 30,
   night: 15,
   /** Night mode hours (Asia/Dhaka). */

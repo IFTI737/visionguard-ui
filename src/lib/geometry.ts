@@ -70,3 +70,18 @@ export function pointerToPoint(e: { clientX: number; clientY: number }, el: HTML
   const r = el.getBoundingClientRect();
   return [clamp01((e.clientX - r.left) / r.width), clamp01((e.clientY - r.top) / r.height)];
 }
+
+/**
+ * How much of a person's box lies inside a zone (0 to 1), found by testing a grid of points
+ * across the box. Used so someone half inside a zone still counts as entering it.
+ */
+export function overlapFraction(box: { x0: number; y0: number; x1: number; y1: number }, poly: Point[], steps = 14): number {
+  let hit = 0;
+  for (let i = 0; i < steps; i++) {
+    for (let j = 0; j < steps; j++) {
+      const p: Point = [box.x0 + ((i + 0.5) / steps) * (box.x1 - box.x0), box.y0 + ((j + 0.5) / steps) * (box.y1 - box.y0)];
+      if (pointInPolygon(p, poly)) hit++;
+    }
+  }
+  return hit / (steps * steps);
+}

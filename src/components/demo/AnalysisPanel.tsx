@@ -51,7 +51,7 @@ export function AnalysisPanel({ analysis }: { analysis: Analysis }) {
       <Step n={1} title="Person detection (YOLOv8n, running in this browser)" icon={<Cpu size={14} />} aside={checkedAt}>
         Found {checks.length} {checks.length === 1 ? "person" : "people"} in {inferenceMs} ms
       </Step>
-      <Step n={2} title="Zone check (where are their feet?)" icon={<Footprints size={14} />}>
+      <Step n={2} title="Zone check (feet or body inside a zone)" icon={<Footprints size={14} />}>
         {checks.length === 0 ? (
           "Nobody in view"
         ) : (

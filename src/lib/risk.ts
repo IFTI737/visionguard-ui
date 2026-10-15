@@ -1,6 +1,6 @@
 import { RISK } from "@/data/seed";
 import type { AlertLevel, PersonBox, Point, Zone } from "@/types";
-import { pointInPolygon } from "./geometry";
+import { overlapFraction, pointInPolygon } from "./geometry";
 import { describeSchedule, isWindowActive, isZoneActive } from "./schedule";
 
 /** Where a person stands: the bottom centre of their box (their feet). */
@@ -25,7 +25,12 @@ export interface RiskDecision {
 export function checkPeople(people: PersonBox[], zones: Zone[], now: Date): PersonCheck[] {
   return people.map((box) => {
     const feet = footPoint(box);
-    const inside = zones.filter((z) => pointInPolygon(feet, z.points));
+    // Inside = feet in the zone, or a good share of the person's box overlaps it.
+    const inside = zones
+      .map((z) => ({ z, overlap: overlapFraction(box, z.points) }))
+      .filter(({ z, overlap }) => pointInPolygon(feet, z.points) || overlap >= RISK.minOverlap)
+      .sort((a, b) => b.overlap - a.overlap)
+      .map(({ z }) => z);
     const active = inside.find((z) => isZoneActive(z, now));
     const zone = active ?? inside[0] ?? null;
     return { box, zone, zoneActive: Boolean(active) };
