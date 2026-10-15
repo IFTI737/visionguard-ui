@@ -116,7 +116,7 @@ export function CameraView() {
       </div>
 
       {status === "live" && <DemoControls area={area} demo={demo} />}
-      <AlertToast alert={demo.toast} onClose={demo.dismissToast} />
+      <AlertToast toast={demo.toast} onClose={demo.dismissToast} />
     </div>
   );
 }

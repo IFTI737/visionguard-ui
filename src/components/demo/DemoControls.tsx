@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { EyeOff, Info, LoaderCircle, RotateCcw, ScanSearch, UserRound } from "lucide-react";
+import { EyeOff, Info, LoaderCircle, Radar, RotateCcw, UserRound } from "lucide-react";
 import { AUTO_SCENE_ID, DEMO_SCENES } from "@/data/seed";
 import { useVisionGuard } from "@/store/useVisionGuard";
 import type { Area } from "@/types";
@@ -10,7 +10,7 @@ import type { DemoEvents } from "./useDemoEvents";
 
 const BUSY_TEXT = {
   "loading-model": "Loading the AI model (about 12 MB, first time only)…",
-  detecting: "Looking for people…",
+  detecting: "New frame: looking for people…",
   checking: "Checking the camera picture…",
 } as const;
 
@@ -27,13 +27,18 @@ export function DemoControls({ area, demo }: { area: Area; demo: DemoEvents }) {
     <section aria-labelledby="demo-heading" className="mt-4 rounded-2xl border border-line bg-white p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 id="demo-heading" className="font-semibold text-ink">
-            Demo events
+          <h2 id="demo-heading" className="flex items-center gap-2 font-semibold text-ink">
+            <span className="relative flex size-2.5">
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-60" />
+              <span className="relative inline-flex size-2.5 rounded-full bg-success" />
+            </span>
+            Automatic monitoring is on
           </h2>
           <p className="mt-0.5 flex items-start gap-1.5 text-xs text-muted">
             <Info size={13} className="mt-0.5 shrink-0" />
-            Photos stand in for the camera. Person detection, the zone and hours checks and the risk score run for
-            real in this browser.
+            Every new camera frame is checked by itself: people are detected, their position is compared with each
+            restricted zone and its hours, and an alert is raised for every zone that was entered. Only the camera is
+            simulated, using the buttons below.
           </p>
         </div>
         <label className="flex items-center gap-2 text-xs font-semibold text-muted">
@@ -70,20 +75,18 @@ export function DemoControls({ area, demo }: { area: Area; demo: DemoEvents }) {
       )}
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <button type="button" disabled={disabled} onClick={demo.personWalksIn} className={`${btn} bg-brand text-white hover:bg-brand-dark`}>
+        <span className="mr-1 self-center text-xs font-semibold uppercase tracking-wider text-muted">Simulate camera:</span>
+        <button
+          type="button"
+          disabled={disabled || mode === "person"}
+          onClick={demo.personWalksIn}
+          className={`${btn} bg-brand text-white hover:bg-brand-dark`}
+        >
           <UserRound size={16} /> Person walks in
         </button>
         <button
           type="button"
           disabled={disabled || mode === "covered"}
-          onClick={demo.scanView}
-          className={`${btn} border border-line bg-white text-ink hover:border-brand hover:text-brand`}
-        >
-          <ScanSearch size={16} /> Scan current view
-        </button>
-        <button
-          type="button"
-          disabled={disabled}
           onClick={demo.coverCamera}
           className={`${btn} border border-line bg-white text-ink hover:border-danger hover:text-danger`}
         >
@@ -91,11 +94,11 @@ export function DemoControls({ area, demo }: { area: Area; demo: DemoEvents }) {
         </button>
         <button
           type="button"
-          disabled={disabled || (mode === "empty" && !analysis)}
+          disabled={disabled || mode === "empty"}
           onClick={demo.reset}
           className={`${btn} text-muted hover:bg-pale hover:text-ink`}
         >
-          <RotateCcw size={16} /> Reset view
+          <RotateCcw size={16} /> Back to normal view
         </button>
       </div>
 
@@ -103,7 +106,7 @@ export function DemoControls({ area, demo }: { area: Area; demo: DemoEvents }) {
         <div className="mt-4 border-t border-line pt-4">
           {busy ? (
             <p className="flex items-center gap-2 text-sm text-muted">
-              <LoaderCircle size={16} className="animate-spin text-brand" /> {BUSY_TEXT[busy]}
+              <LoaderCircle size={16} className="animate-spin text-brand" /> <Radar size={15} className="text-brand" /> {BUSY_TEXT[busy]}
             </p>
           ) : (
             analysis && <AnalysisPanel analysis={analysis} />

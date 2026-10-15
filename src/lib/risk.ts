@@ -68,8 +68,29 @@ export function scorePerson(check: PersonCheck, now: Date): RiskDecision {
   return { score, level: levelFor(score), reasons, person: check };
 }
 
-/** The most serious decision among everyone in view. */
-export function decide(checks: PersonCheck[], now: Date): RiskDecision {
-  const decisions = checks.map((c) => scorePerson(c, now));
-  return decisions.sort((a, b) => b.score - a.score)[0] ?? { score: 0, level: "ignore", reasons: [], person: null };
+export interface ZoneDecision extends RiskDecision {
+  zone: Zone;
+  /** How many detected people stand in this zone. */
+  people: number;
+}
+
+/**
+ * One decision per restricted zone that has someone in it, most serious first.
+ * Two zones entered at the same time give two separate alerts.
+ */
+export function decideByZone(checks: PersonCheck[], now: Date): ZoneDecision[] {
+  const byZone = new Map<string, ZoneDecision>();
+  for (const check of checks) {
+    if (!check.zone) continue;
+    const decision = scorePerson(check, now);
+    if (decision.level === "ignore") continue;
+    const current = byZone.get(check.zone.id);
+    if (!current) {
+      byZone.set(check.zone.id, { ...decision, zone: check.zone, people: 1 });
+    } else {
+      const people = current.people + 1;
+      byZone.set(check.zone.id, decision.score > current.score ? { ...decision, zone: check.zone, people } : { ...current, people });
+    }
+  }
+  return [...byZone.values()].sort((a, b) => b.score - a.score);
 }
