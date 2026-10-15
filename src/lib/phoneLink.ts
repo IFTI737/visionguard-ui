@@ -16,7 +16,8 @@ import { useSyncExternalStore } from "react";
 import { getIceServers } from "./ice";
 import { dashboardPeerId } from "./pairing";
 
-export type LinkStatus = "starting" | "waiting" | "connected" | "error";
+/** starting → waiting (for a phone) → linking (phone found, video connecting) → connected. */
+export type LinkStatus = "starting" | "waiting" | "linking" | "connected" | "error";
 
 export interface LinkState {
   code: string;
@@ -26,6 +27,16 @@ export interface LinkState {
   relay: boolean;
   error: string | null;
   connectedAt: number | null;
+  /** Phone calls that reached us but whose video never got through (network blocks direct video). */
+  failures: number;
+}
+
+/** True once video can actually flow (ICE finished), not just when the call was set up. */
+function isUp(pc: RTCPeerConnection): boolean {
+  return pc.connectionState === "connected" || pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed";
+}
+function isFailed(pc: RTCPeerConnection): boolean {
+  return pc.connectionState === "failed" || pc.iceConnectionState === "failed" || pc.connectionState === "closed";
 }
 
 const RETRY_MS = 3000;
@@ -55,7 +66,7 @@ class PhoneReceiver {
   private stopped = false;
 
   constructor(code: string) {
-    this.state = { code, status: "starting", stream: null, relay: false, error: null, connectedAt: null };
+    this.state = { code, status: "starting", stream: null, relay: false, error: null, connectedAt: null, failures: 0 };
     void this.start();
   }
 
@@ -89,24 +100,42 @@ class PhoneReceiver {
     });
 
     peer.on("call", (call) => {
-      this.call?.close();
-      this.call = call;
+      const old = this.call;
+      this.call = call; // set first, so the old call's "close" is ignored
+      old?.close();
       call.answer(); // receive only: the dashboard sends no video back
 
-      call.on("stream", (stream) => {
-        this.set({ status: "connected", stream, connectedAt: Date.now(), error: null });
-      });
+      // The "stream" event fires as soon as the call is set up, before any video can flow.
+      // Only show the video once the connection is really up, so the view doesn't flash a black frame.
+      let remote: MediaStream | null = null;
+      let live = false;
+      this.set({ status: "linking", stream: null, connectedAt: null, error: null });
+
+      const pc = call.peerConnection;
+      const goLive = () => {
+        if (this.call !== call || live || !remote || !isUp(pc)) return;
+        live = true;
+        this.set({ status: "connected", stream: remote, connectedAt: Date.now(), error: null, failures: 0 });
+      };
       const lost = () => {
         if (this.call !== call) return;
         this.call = null;
-        this.set({ status: "waiting", stream: null, connectedAt: null });
+        this.set({
+          status: "waiting",
+          stream: null,
+          connectedAt: null,
+          failures: live ? 0 : this.state.failures + 1,
+        });
       };
+      call.on("stream", (stream) => {
+        remote = stream;
+        goLive();
+      });
+      const onState = () => (isFailed(pc) ? lost() : goLive());
+      pc?.addEventListener("connectionstatechange", onState);
+      pc?.addEventListener("iceconnectionstatechange", onState);
       call.on("close", lost);
       call.on("error", lost);
-      call.peerConnection?.addEventListener("connectionstatechange", () => {
-        const s = call.peerConnection.connectionState;
-        if (s === "failed" || s === "closed") lost();
-      });
     });
 
     peer.on("disconnected", () => {

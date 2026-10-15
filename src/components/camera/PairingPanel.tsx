@@ -33,6 +33,9 @@ export function PairingPanel({ code, link }: { code: string; link: LinkState | n
   const host = window.location.hostname;
   const insecure = !window.isSecureContext || host === "localhost" || host === "127.0.0.1";
   const status = link?.status ?? "starting";
+  const failures = link?.failures ?? 0;
+  // The phone reached us but the video couldn't get through, and there is no relay to fall back on.
+  const blocked = failures > 0 && !link?.relay && status !== "linking";
 
   return (
     <div className="grid w-full gap-6 rounded-2xl border-2 border-dashed border-brand/40 bg-white p-5 sm:p-8 md:grid-cols-[auto_1fr] md:items-center">
@@ -71,10 +74,10 @@ export function PairingPanel({ code, link }: { code: string; link: LinkState | n
 
         <div
           className={`mt-4 flex items-start gap-2 rounded-xl px-3 py-2.5 text-sm ${
-            status === "error" || insecure ? "bg-danger-tint text-danger" : "bg-pale text-ink"
+            status === "error" || insecure || blocked ? "bg-danger-tint text-danger" : "bg-pale text-ink"
           }`}
         >
-          {status === "error" || insecure ? (
+          {status === "error" || insecure || blocked ? (
             <CircleAlert size={17} className="mt-0.5 shrink-0" />
           ) : (
             <LoaderCircle size={17} className="mt-0.5 shrink-0 animate-spin text-brand" />
@@ -82,8 +85,14 @@ export function PairingPanel({ code, link }: { code: string; link: LinkState | n
           <span>
             {insecure
               ? "This page is open on your own computer (localhost), which a phone can't reach, and phones only allow the camera on https sites. Open the deployed Vercel address of VisionGuard to pair a phone."
-              : status === "waiting"
-                ? "Waiting for the phone… keep this page open."
+              : status === "linking"
+                ? "Phone found. Starting the video…"
+                : blocked
+                  ? `The phone reached this computer, but the video couldn't get through the network (${failures} ${failures > 1 ? "tries" : "try"}). Many home routers and mobile networks block direct video. Turn on the relay server (TURN) for this site to fix it. Still retrying…`
+                  : status === "waiting"
+                ? failures > 0
+                  ? "Video connection dropped; the phone is retrying through the relay…"
+                  : "Waiting for the phone… keep this page open."
                 : status === "error"
                   ? (link?.error ?? "Pairing problem; retrying…")
                   : (link?.error ?? "Getting ready…")}

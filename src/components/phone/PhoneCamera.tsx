@@ -38,7 +38,7 @@ function cameraError(err: unknown): string {
 }
 
 const LINK_TEXT: Record<Link, { title: string; detail: string }> = {
-  connecting: { title: "Connecting…", detail: "Linking this phone to your dashboard." },
+  connecting: { title: "Connecting…", detail: "Linking this phone to your dashboard. This can take up to 20 seconds." },
   waiting: {
     title: "Waiting for the dashboard",
     detail: "Keep the camera page with the QR code open on your computer. This phone connects automatically.",
@@ -134,23 +134,40 @@ export function PhoneCamera() {
       peer.reconnect();
       return; // "open" fires again and calls back here
     }
-    callRef.current?.close();
+    const old = callRef.current;
+    callRef.current = null; // so the old call's "close" doesn't trigger another retry
+    old?.close();
     const call = peer.call(dashboardPeerId(code), media);
     callRef.current = call;
     if (!call) return retryCall("waiting");
 
     const pc = call.peerConnection;
     let lostTimer: number | null = null;
+    let connected = false;
+    // The dashboard was found; if the video can't get through the network, say so instead of "waiting".
+    const failed = () => {
+      if (callRef.current !== call) return;
+      if (!connected)
+        setError("Found your computer, but the video can't get through this network. Retrying… (the site's relay server fixes this)");
+      retryCall("reconnecting");
+    };
+    // ICE can sit in "checking" for a long time when it's blocked; give up and retry after a while.
+    const giveUp = window.setTimeout(() => {
+      if (!connected) failed();
+    }, 25_000);
     pc?.addEventListener("connectionstatechange", () => {
       if (callRef.current !== call) return;
       const s = pc.connectionState;
       if (s === "connected") {
+        connected = true;
+        window.clearTimeout(giveUp);
         if (lostTimer) window.clearTimeout(lostTimer);
         setLink("live");
         setError(null);
         capBitrate(call);
       } else if (s === "failed") {
-        retryCall("reconnecting");
+        window.clearTimeout(giveUp);
+        failed();
       } else if (s === "disconnected") {
         // Often recovers by itself (e.g. Wi-Fi to mobile data); if not, call again.
         setLink("reconnecting");
@@ -160,7 +177,8 @@ export function PhoneCamera() {
       }
     });
     call.on("close", () => {
-      if (callRef.current === call) retryCall("waiting");
+      window.clearTimeout(giveUp);
+      failed();
     });
   }
 
