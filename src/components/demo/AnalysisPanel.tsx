@@ -39,7 +39,7 @@ export function AnalysisPanel({ analysis }: { analysis: Analysis }) {
           </span>
         </Step>
         {alerts.length > 0 && <Outcome text="Owner alerted that this camera can no longer see." />}
-        {repeated && <Outcome text="Already alerted for this frame; not sent again." />}
+        {repeated && <Outcome text="Already alerted for this recently, so it was not sent again." />}
       </ol>
     );
   }
@@ -109,7 +109,7 @@ export function AnalysisPanel({ analysis }: { analysis: Analysis }) {
           }
         />
       )}
-      {repeated && <Outcome text="Already alerted for this frame and these zones; not sent again." />}
+      {repeated && <Outcome text="Already alerted for this recently, so it was not sent again." />}
     </ol>
   );
 }

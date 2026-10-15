@@ -9,8 +9,8 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-/** Draw an image onto a new canvas of the given size and return its pixels. */
-export function imagePixels(img: HTMLImageElement, width: number, height: number): ImageData {
+/** Draw an image, video frame or canvas onto a new canvas of the given size and return its pixels. */
+export function imagePixels(img: CanvasImageSource, width: number, height: number): ImageData {
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;

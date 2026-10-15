@@ -16,7 +16,11 @@ export interface CameraHealth {
  * or very flat picture. Works on a small copy of the frame (64×36) for speed.
  */
 export async function checkCameraView(src: string): Promise<CameraHealth> {
-  const img = await loadImage(src);
+  return checkFrameHealth(await loadImage(src));
+}
+
+/** Same check on any drawable source, e.g. the current frame of a live video. */
+export function checkFrameHealth(img: CanvasImageSource): CameraHealth {
   const { data } = imagePixels(img, 64, 36);
   const n = data.length / 4;
   let sum = 0;

@@ -38,12 +38,16 @@ export interface DetectionResult {
   inferenceMs: number;
 }
 
-/** Find people in a photo. Boxes are returned as fractions of the photo's width and height. */
+/** Find people in a photo file. Boxes are returned as fractions of the photo's width and height. */
 export async function detectPeople(src: string): Promise<DetectionResult> {
-  const [{ ort, session }, img] = await Promise.all([loadDetector(), loadImage(src)]);
+  const img = await loadImage(src);
+  return detectPeopleIn(img, img.naturalWidth, img.naturalHeight);
+}
+
+/** Find people in any drawable source (photo, video frame, canvas) of the given size. */
+export async function detectPeopleIn(img: CanvasImageSource, W: number, H: number): Promise<DetectionResult> {
+  const { ort, session } = await loadDetector();
   const size = DETECTOR.inputSize;
-  const W = img.naturalWidth;
-  const H = img.naturalHeight;
 
   // Letterbox: scale the photo to fit 640×640 and pad the rest with grey, as YOLO expects.
   const scale = Math.min(size / W, size / H);

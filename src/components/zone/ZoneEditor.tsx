@@ -11,6 +11,7 @@ import { DEFAULT_SCHEDULE } from "@/data/seed";
 import { FULL_FRAME } from "@/lib/geometry";
 import { useHydrated } from "@/lib/useHydrated";
 import { useNow } from "@/lib/useNow";
+import { usePhoneLink } from "@/lib/phoneLink";
 import { useVisionGuard } from "@/store/useVisionGuard";
 import type { ZoneShape } from "@/types";
 import { ZoneCanvas, type DraftShape, type DrawTool } from "./ZoneCanvas";
@@ -34,6 +35,9 @@ export function ZoneEditor() {
   const removeZone = useVisionGuard((s) => s.removeZone);
   const now = useNow(true);
   const photos = useAreaPhotos(area);
+  const isPhone = area?.camera.source === "phone";
+  const phoneLink = usePhoneLink(isPhone ? (area?.camera.phoneCode ?? null) : null);
+  const phoneStream = phoneLink?.status === "connected" ? phoneLink.stream : null;
 
   const [tool, setTool] = useState<DrawTool>("polygon");
   const [draft, setDraft] = useState<DraftShape | null>(null);
@@ -53,14 +57,20 @@ export function ZoneEditor() {
     );
   }
 
-  if (area.camera.status !== "live") {
+  if (isPhone ? !phoneStream : area.camera.status !== "live") {
     return (
       <div className="rounded-2xl border border-line bg-white p-10 text-center">
         <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-brand-tint text-brand">
           <Radio size={22} />
         </span>
-        <p className="mt-3 text-lg font-semibold text-ink">Start the camera stream first</p>
-        <p className="mt-1 text-sm text-muted">Zones are drawn on the camera&apos;s view, so the camera needs to be live.</p>
+        <p className="mt-3 text-lg font-semibold text-ink">
+          {isPhone ? "Connect the phone camera first" : "Start the camera stream first"}
+        </p>
+        <p className="mt-1 text-sm text-muted">
+          {isPhone
+            ? "Zones are drawn on the live view. Scan the QR code with the phone and start its camera, then come back."
+            : "Zones are drawn on the camera\u2019s view, so the camera needs to be live."}
+        </p>
         <ButtonLink href={`/areas/${area.id}`} className="mt-5">
           Go to camera
         </ButtonLink>
@@ -119,8 +129,9 @@ export function ZoneEditor() {
             onWholeView={() => startDraft({ shape: "full", points: FULL_FRAME })}
           />
           <ZoneCanvas
-            imageSrc={photos.loading ? null : photos.empty}
-            imageAlt={`${area.name} camera view (demo photo)`}
+            imageSrc={isPhone ? "" : photos.loading ? null : photos.empty}
+            stream={phoneStream}
+            imageAlt={isPhone ? `${area.name} live phone camera` : `${area.name} camera view (demo photo)`}
             zones={area.zones}
             selectedId={selectedId}
             onSelect={setSelectedId}
@@ -131,6 +142,7 @@ export function ZoneEditor() {
           />
           <p className="mt-3 text-xs text-muted">
             Zones are positions in this camera&apos;s view. If the camera is moved, redraw them.
+            {isPhone && " Keep the phone still while you draw, e.g. propped against something."}
           </p>
         </div>
 

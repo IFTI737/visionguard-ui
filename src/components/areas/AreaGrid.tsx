@@ -18,7 +18,8 @@ const STATUS: Record<CameraStatus, { label: string; dot: string }> = {
 
 function AreaCard({ area }: { area: Area }) {
   const rename = useVisionGuard((s) => s.renameArea);
-  const status = STATUS[area.camera.status];
+  const phone = area.camera.source === "phone";
+  const status = phone ? { label: "Phone camera", dot: "bg-brand" } : STATUS[area.camera.status];
   const href = `/areas/${area.id}`;
 
   return (
@@ -37,7 +38,7 @@ function AreaCard({ area }: { area: Area }) {
           <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted">
             <span className={`size-2 rounded-full ${status.dot}`} />
             {status.label}
-            {area.camera.ip && <span className="font-mono">· {area.camera.ip}</span>}
+            {!phone && area.camera.ip && <span className="font-mono">· {area.camera.ip}</span>}
           </p>
         </div>
       </div>
@@ -47,7 +48,7 @@ function AreaCard({ area }: { area: Area }) {
           {area.zones.length === 0 ? "No zones yet" : `${area.zones.length} zone${area.zones.length > 1 ? "s" : ""}`}
         </span>
         <Link href={href} className="inline-flex items-center gap-0.5 font-semibold text-brand hover:underline">
-          {area.camera.status === "disconnected" ? "Connect" : "Open"} <ChevronRight size={16} />
+          {!phone && area.camera.status === "disconnected" ? "Connect" : "Open"} <ChevronRight size={16} />
         </Link>
       </div>
     </li>

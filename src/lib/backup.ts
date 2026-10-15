@@ -39,7 +39,11 @@ export function parseBackup(text: string): BackupData {
   return {
     userName: r.userName,
     // Older exports had no photo setting; use automatic matching by area name.
-    areas: r.areas.map((a) => ({ ...a, sceneId: a.sceneId ?? DEFAULT_SCENE_ID })),
+    areas: r.areas.map((a) => ({
+      ...a,
+      sceneId: a.sceneId ?? DEFAULT_SCENE_ID,
+      camera: { ...a.camera, source: a.camera?.source ?? "ip", phoneCode: a.camera?.phoneCode ?? null },
+    })),
     alerts: Array.isArray(r.alerts) ? r.alerts.filter((a) => typeof a?.level === "string") : [],
     settings: r.settings,
   };

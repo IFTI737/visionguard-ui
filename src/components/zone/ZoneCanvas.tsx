@@ -22,6 +22,8 @@ export interface DraftShape {
 
 interface ZoneCanvasProps {
   imageSrc: string | null;
+  /** Live video to draw on (phone camera). Used instead of the photo when given. */
+  stream?: MediaStream | null;
   imageAlt: string;
   zones: Zone[];
   selectedId: string | null;
@@ -43,11 +45,12 @@ const HINTS: Record<Exclude<DrawTool, "select">, string> = {
 };
 
 /**
- * Still frame from the camera with a drawing layer on top.
+ * Camera view (still frame, or live video for a phone camera) with a drawing layer on top.
  * All points are stored as fractions of the frame (0–1), so zones fit any screen size.
  */
 export function ZoneCanvas({
   imageSrc,
+  stream,
   imageAlt,
   zones,
   selectedId,
@@ -148,7 +151,7 @@ export function ZoneCanvas({
 
   return (
     <div>
-      <FeedFrame src={imageSrc} alt={imageAlt} className="select-none rounded-2xl shadow-lg shadow-ink/10">
+      <FeedFrame src={imageSrc} stream={stream} alt={imageAlt} className="select-none rounded-2xl shadow-lg shadow-ink/10">
 
         <div
           ref={overlayRef}
@@ -276,7 +279,7 @@ export function ZoneCanvas({
         </div>
 
         <span className="pointer-events-none absolute right-3 top-3 rounded-md bg-ink/70 px-2 py-1 text-[11px] font-semibold text-white">
-          Still frame
+          {stream ? "Live video" : "Still frame"}
         </span>
 
       </FeedFrame>

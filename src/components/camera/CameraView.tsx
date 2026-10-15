@@ -11,8 +11,11 @@ import { useDemoEvents } from "@/components/demo/useDemoEvents";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { useHydrated } from "@/lib/useHydrated";
 import { useVisionGuard } from "@/store/useVisionGuard";
+import { newPairingCode } from "@/lib/pairing";
+import { usePhoneLink } from "@/lib/phoneLink";
 import { CameraFrame } from "./CameraFrame";
-import { IpForm } from "./IpForm";
+import { ConnectChooser } from "./ConnectChooser";
+import { PhoneCameraView } from "./PhoneCameraView";
 
 /** Simulated time to "reach" the camera, so the connecting state is visible in the demo. */
 const CONNECT_DELAY_MS = 1400;
@@ -23,7 +26,8 @@ export function CameraView() {
   const area = useVisionGuard((s) => s.areas.find((a) => a.id === areaId));
   const setCamera = useVisionGuard((s) => s.setCamera);
   const timer = useRef<number | null>(null);
-  const demo = useDemoEvents(area);
+  const demo = useDemoEvents(area?.camera.source === "phone" ? undefined : area);
+  const phoneLink = usePhoneLink(area?.camera.source === "phone" ? area.camera.phoneCode : null);
 
   if (!hydrated) return <CameraViewSkeleton />;
 
@@ -40,11 +44,17 @@ export function CameraView() {
   }
 
   const { status } = area.camera;
+  const isPhone = area.camera.source === "phone" && area.camera.phoneCode !== null;
+  const showingLive = isPhone ? phoneLink?.status === "connected" : status === "live";
 
   const connect = (ip: string, port: number) => {
     setCamera(area.id, { ip, port, status: "connecting" });
     if (timer.current) window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setCamera(area.id, { status: "connected" }), CONNECT_DELAY_MS);
+  };
+
+  const usePhone = () => {
+    setCamera(area.id, { source: "phone", status: "connecting", phoneCode: newPairingCode() });
   };
 
   const disconnect = () => {
@@ -62,10 +72,10 @@ export function CameraView() {
             <ArrowLeft size={15} /> Areas
           </Link>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">
-            {status === "live" ? "Live view" : "Connect a camera"}
+            {showingLive ? "Live view" : isPhone ? "Pair a phone camera" : "Connect a camera"}
           </h1>
           <p className="mt-1 text-sm text-muted">
-            {status === "live"
+            {showingLive
               ? "This is what the camera sees. Next, mark the parts of this view that are restricted."
               : "Each area has one camera. Connect it to see the view and start monitoring."}
           </p>
@@ -74,11 +84,20 @@ export function CameraView() {
         <AreaNameChip area={area} />
       </div>
 
+      {isPhone ? (
+        <PhoneCameraView area={area} />
+      ) : (
+        <>
       <CameraFrame area={area} feed={demo.feed} onStartStreaming={() => setCamera(area.id, { status: "live" })} />
 
       <div className="mt-4">
         {status === "disconnected" ? (
-          <IpForm initialIp={area.camera.ip} initialPort={area.camera.port} onConnect={connect} />
+          <ConnectChooser
+            initialIp={area.camera.ip}
+            initialPort={area.camera.port}
+            onConnectIp={connect}
+            onUsePhone={usePhone}
+          />
         ) : (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-white p-4">
             <p className="text-sm text-muted">
@@ -116,7 +135,9 @@ export function CameraView() {
       </div>
 
       {status === "live" && <DemoControls area={area} demo={demo} />}
-      <AlertToast toast={demo.toast} onClose={demo.dismissToast} />
+          <AlertToast toast={demo.toast} onClose={demo.dismissToast} />
+        </>
+      )}
     </div>
   );
 }

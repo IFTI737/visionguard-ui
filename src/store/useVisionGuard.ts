@@ -12,7 +12,7 @@ import {
 } from "@/data/seed";
 import type { BackupData } from "@/lib/backup";
 import { makeId } from "@/lib/id";
-import type { AlertChannel, AlertEvent, AlertStatus, Area, AreaKind, CameraStatus, Zone } from "@/types";
+import type { AlertChannel, AlertEvent, AlertStatus, Area, AreaKind, Camera, Zone } from "@/types";
 
 interface VisionGuardState extends BackupData {
   /** UI only; not saved. */
@@ -20,7 +20,7 @@ interface VisionGuardState extends BackupData {
 
   setUserName: (name: string) => void;
   addArea: (kind: AreaKind, opts?: { name?: string; hazard?: boolean }) => string;
-  setCamera: (id: string, camera: { ip?: string; port?: number; status?: CameraStatus }) => void;
+  setCamera: (id: string, camera: Partial<Camera>) => void;
   renameArea: (id: string, name: string) => void;
   updateArea: (id: string, patch: Partial<Omit<Area, "id">>) => void;
   removeArea: (id: string) => void;
@@ -61,7 +61,7 @@ export const useVisionGuard = create<VisionGuardState>()(
           id: makeId("area"),
           kind,
           name: opts.name?.trim() || preset?.label || "New area",
-          camera: { ip: "", port: DEFAULT_CAMERA_PORT, status: "disconnected" },
+          camera: { source: "ip", ip: "", port: DEFAULT_CAMERA_PORT, status: "disconnected", phoneCode: null },
           features: preset ? [...preset.features] : [...CUSTOM_AREA_FEATURES],
           zones: [],
           hazard: opts.hazard ?? preset?.hazard ?? false,
@@ -135,11 +135,16 @@ export const useVisionGuard = create<VisionGuardState>()(
     }),
     {
       name: "visionguard-demo",
-      version: 3,
+      version: 4,
       // v1 → v2: alerts changed shape. v2 → v3: demo photos are found from the area name ("auto").
       migrate: (persisted, version) => {
         const state = (persisted ?? {}) as Partial<BackupData>;
-        const areas = (state.areas ?? []).map((a) => ({ ...a, sceneId: DEFAULT_SCENE_ID }));
+        // v3 → v4: cameras got a source (IP or phone) and a pairing code.
+        const areas = (state.areas ?? []).map((a) => ({
+          ...a,
+          sceneId: version < 3 ? DEFAULT_SCENE_ID : a.sceneId,
+          camera: { ...a.camera, source: a.camera.source ?? "ip", phoneCode: a.camera.phoneCode ?? null },
+        }));
         return { ...state, areas, alerts: version < 2 ? [] : (state.alerts ?? []) } as BackupData;
       },
       storage: createJSONStorage(() => localStorage),

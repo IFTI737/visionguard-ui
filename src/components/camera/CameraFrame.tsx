@@ -9,8 +9,14 @@ import { DetectionOverlay } from "./DetectionOverlay";
 import { FeedFrame } from "./FeedFrame";
 
 export interface LiveFeedView {
-  /** Photo currently shown as the feed. */
+  /** Photo currently shown as the feed (ignored when `stream` is set). */
   src: string;
+  /** Live video from a paired phone. */
+  stream?: MediaStream | null;
+  /** Bottom-left label, e.g. "Demo feed · sample photo" or "Phone camera · live". */
+  label?: string;
+  /** Bottom-right detail, e.g. the IP address or pairing code. */
+  detail?: string;
   /** Shown if the photo is missing. */
   fallback?: string;
   /** People found in this photo, if a scan has run on it. */
@@ -41,7 +47,7 @@ export function CameraFrame({ area, feed, onStartStreaming }: CameraFrameProps) 
           </span>
           <p className="mt-4 text-lg font-semibold text-ink">No camera connected</p>
           <p className="mt-1 text-sm text-muted">
-            Enter this camera&apos;s IP address below and press Connect to see its view here.
+            Pair a phone by scanning a QR code, or enter an IP camera&apos;s address below.
           </p>
         </div>
       </div>
@@ -88,12 +94,13 @@ export function CameraFrame({ area, feed, onStartStreaming }: CameraFrameProps) 
   return <LiveFeed area={area} feed={feed} />;
 }
 
-function LiveFeed({ area, feed }: { area: Area; feed: LiveFeedView }) {
+export function LiveFeed({ area, feed }: { area: Area; feed: LiveFeedView }) {
   const now = useNow(true);
 
   return (
     <FeedFrame
       src={feed.src}
+      stream={feed.stream}
       fallback={feed.fallback}
       alt={`${area.name} camera view (demo photo)`}
       className="rounded-2xl shadow-lg shadow-ink/10"
@@ -122,11 +129,11 @@ function LiveFeed({ area, feed }: { area: Area; feed: LiveFeedView }) {
 
       <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4">
         <span className="rounded-md bg-white/90 px-2 py-1 text-[11px] font-semibold text-ink">
-          Demo feed · sample photo
+          {feed.label ?? "Demo feed · sample photo"}
         </span>
       </div>
       <p className="absolute bottom-3 right-3 font-mono text-[11px] text-white/85 sm:bottom-4 sm:right-4">
-        {area.camera.ip}:{area.camera.port}
+        {feed.detail ?? `${area.camera.ip}:${area.camera.port}`}
       </p>
     </FeedFrame>
   );

@@ -41,10 +41,16 @@ export interface Zone {
 /** disconnected → connecting → connected (reachable, not streaming) → live (streaming). */
 export type CameraStatus = "disconnected" | "connecting" | "connected" | "live";
 
+/** "ip": a CCTV/IP camera (demo photos stand in for it). "phone": a phone streaming live via QR pairing. */
+export type CameraSource = "ip" | "phone";
+
 export interface Camera {
+  source: CameraSource;
   ip: string;
   port: number;
   status: CameraStatus;
+  /** 6-digit pairing code shown in the QR, for phone cameras. */
+  phoneCode: string | null;
 }
 
 export interface Area {
