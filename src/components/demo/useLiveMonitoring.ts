@@ -16,7 +16,7 @@ const COOLDOWN_MS = 60_000;
 const TOAST_MS = 9000;
 /** Frames are shrunk to this width before checking; plenty for the 640-pixel model. */
 const FRAME_WIDTH = 640;
-const SNAPSHOT_WIDTH = 320;
+const SNAPSHOT_WIDTH = 480;
 
 /**
  * Automatic monitoring of a live video stream (a paired phone camera).
@@ -68,7 +68,7 @@ export function useLiveMonitoring(area: Area | undefined, stream: MediaStream | 
       snap.width = SNAPSHOT_WIDTH;
       snap.height = Math.round((frame.height / frame.width) * SNAPSHOT_WIDTH);
       snap.getContext("2d")?.drawImage(frame, 0, 0, snap.width, snap.height);
-      return snap.toDataURL("image/jpeg", 0.6);
+      return snap.toDataURL("image/jpeg", 0.68);
     };
 
     /** True if this key is outside its cooldown; marks it as alerted now. */

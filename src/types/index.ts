@@ -77,7 +77,7 @@ export interface PersonBox {
   score: number;
 }
 
-export type AlertKind = "intrusion" | "camera_blocked";
+export type AlertKind = "intrusion" | "camera_blocked" | "camera_offline";
 export type AlertStatus = "new" | "confirmed" | "false_alarm";
 /** Risk bands from the pitch: log (20–49), notify (50–79), urgent (80+). */
 export type AlertLevel = "log" | "notify" | "urgent";
@@ -108,4 +108,6 @@ export type AlertChannel = "push" | "telegram" | "call";
 
 export interface Settings {
   channels: Record<AlertChannel, boolean>;
+  /** Alert sound on this computer. Treated as on when missing. */
+  sound?: boolean;
 }

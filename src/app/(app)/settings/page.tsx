@@ -1,5 +1,5 @@
-import { ComingNext } from "@/components/layout/ComingNext";
+import { SettingsView } from "@/components/settings/SettingsView";
 
 export default function SettingsPage() {
-  return <ComingNext title="Settings" description="Choose how VisionGuard reaches you." />;
+  return <SettingsView />;
 }

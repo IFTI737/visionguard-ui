@@ -28,6 +28,7 @@ interface VisionGuardState extends BackupData {
   updateZone: (areaId: string, zoneId: string, patch: Partial<Omit<Zone, "id">>) => void;
   removeZone: (areaId: string, zoneId: string) => void;
   setChannel: (channel: AlertChannel, on: boolean) => void;
+  setSound: (on: boolean) => void;
 
   addAlert: (alert: Omit<AlertEvent, "id" | "createdAt" | "status">) => AlertEvent;
   setAlertStatus: (id: string, status: AlertStatus) => void;
@@ -117,6 +118,8 @@ export const useVisionGuard = create<VisionGuardState>()(
 
       setChannel: (channel, on) =>
         set((s) => ({ settings: { ...s.settings, channels: { ...s.settings.channels, [channel]: on } } })),
+
+      setSound: (on) => set((s) => ({ settings: { ...s.settings, sound: on } })),
 
       addAlert: (alert) => {
         const full: AlertEvent = { ...alert, id: makeId("alert"), createdAt: Date.now(), status: "new" };

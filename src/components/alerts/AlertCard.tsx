@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { EyeOff, ThumbsDown, ThumbsUp } from "lucide-react";
+import { EyeOff, ThumbsDown, ThumbsUp, WifiOff } from "lucide-react";
 import { FeedFrame } from "@/components/camera/FeedFrame";
 import { COVERED_FALLBACK } from "@/data/seed";
 import { toSvgPoints } from "@/lib/geometry";
@@ -75,7 +75,9 @@ export function AlertCard({ alert, zones }: { alert: AlertEvent; zones: Zone[] }
             )}
           </FeedFrame>
         ) : (
-          <div className="aspect-video rounded-xl bg-pale" />
+          <div className="grid aspect-video place-items-center rounded-xl bg-pale text-muted">
+            {alert.kind === "camera_offline" && <WifiOff size={28} />}
+          </div>
         )}
 
         <div className="min-w-0">

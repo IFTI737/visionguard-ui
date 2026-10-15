@@ -41,7 +41,7 @@ export function PhoneCameraView({ area }: { area: Area }) {
             stream,
             checks: monitor.checks,
             label: "Phone camera · live",
-            detail: `code ${formatCode(code)}`,
+            detail: `code ${formatCode(code)}${link?.route ? (link.route === "relay" ? " · via relay" : " · direct connection") : ""}`,
           }}
         />
       ) : (

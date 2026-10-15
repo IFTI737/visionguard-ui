@@ -1,3 +1,5 @@
+import { AlertDelivery } from "@/components/notify/AlertDelivery";
+import { PhoneWatch } from "@/components/notify/PhoneWatch";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 
@@ -10,6 +12,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Sidebar />
         <main className="min-w-0 flex-1 bg-pale/60">{children}</main>
       </div>
+      <AlertDelivery />
+      <PhoneWatch />
     </div>
   );
 }

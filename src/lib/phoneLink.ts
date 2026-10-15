@@ -29,11 +29,38 @@ export interface LinkState {
   connectedAt: number | null;
   /** Phone calls that reached us but whose video never got through (network blocks direct video). */
   failures: number;
+  /** How the video travels once live: straight from the phone, or through the TURN relay. */
+  route: "direct" | "relay" | null;
 }
 
 /** True once video can actually flow (ICE finished), not just when the call was set up. */
 function isUp(pc: RTCPeerConnection): boolean {
   return pc.connectionState === "connected" || pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed";
+}
+/** Reads which network path the video uses (relay = went through the TURN server). */
+async function readRoute(pc: RTCPeerConnection): Promise<"direct" | "relay" | null> {
+  try {
+    const stats = await pc.getStats();
+    const byId = new Map<string, Record<string, unknown>>();
+    stats.forEach((r) => byId.set(r.id, r as Record<string, unknown>));
+    let pairId: string | undefined;
+    byId.forEach((r) => {
+      if (r.type === "transport" && typeof r.selectedCandidatePairId === "string") pairId = r.selectedCandidatePairId;
+    });
+    let pair = pairId ? byId.get(pairId) : undefined;
+    if (!pair) {
+      byId.forEach((r) => {
+        if (r.type === "candidate-pair" && (r.selected === true || (r.nominated === true && r.state === "succeeded"))) pair = r;
+      });
+    }
+    if (!pair) return null;
+    const kinds = [pair.localCandidateId, pair.remoteCandidateId].map(
+      (id) => byId.get(String(id))?.candidateType,
+    );
+    return kinds.includes("relay") ? "relay" : "direct";
+  } catch {
+    return null;
+  }
 }
 function isFailed(pc: RTCPeerConnection): boolean {
   return pc.connectionState === "failed" || pc.iceConnectionState === "failed" || pc.connectionState === "closed";
@@ -66,7 +93,7 @@ class PhoneReceiver {
   private stopped = false;
 
   constructor(code: string) {
-    this.state = { code, status: "starting", stream: null, relay: false, error: null, connectedAt: null, failures: 0 };
+    this.state = { code, status: "starting", stream: null, relay: false, error: null, connectedAt: null, failures: 0, route: null };
     void this.start();
   }
 
@@ -115,7 +142,15 @@ class PhoneReceiver {
       const goLive = () => {
         if (this.call !== call || live || !remote || !isUp(pc)) return;
         live = true;
-        this.set({ status: "connected", stream: remote, connectedAt: Date.now(), error: null, failures: 0 });
+        this.set({ status: "connected", stream: remote, connectedAt: Date.now(), error: null, failures: 0, route: null });
+        const refresh = async () => {
+          if (this.call !== call) return;
+          const route = await readRoute(pc);
+          if (route && this.call === call) this.set({ route });
+        };
+        void refresh();
+        setTimeout(refresh, 2000);
+        setTimeout(refresh, 8000);
       };
       const lost = () => {
         if (this.call !== call) return;
@@ -124,6 +159,7 @@ class PhoneReceiver {
           status: "waiting",
           stream: null,
           connectedAt: null,
+          route: null,
           failures: live ? 0 : this.state.failures + 1,
         });
       };
